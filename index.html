@@ -13,47 +13,15 @@
 				<img class="logo_img" src="img/AI.png" width="50" height="50">
 			</a>
 			<h1>Ai WebShop</h1>
-			<div class="search">
-				<form class="goods-search-form" @submit.prevent>
-					<input type="text" class="goods-search" ref="searchInput" v-model.trim="searchLine"></input>
-					<button class="clean-search" @click="cleanSearch">X</button>
-				</form>
-			</div>
+			<search :goods="goods" @filter_send="updateGoods"></search>
 			<button class="cart-button btn" @click="toggleCartVisibility">Корзина</button>
 			<span class="cartCount" v-if="cartCount > 0">{{ cartCount }}</span>
 		</header>
 		<main class="main_content" ref="mainContent">
-			<goods-list :goods="filteredGoods" :cart="cartGoods" @add="addNewItem"></goods-list>
+			<error v-if="isError"></error>
+			<goods-list :goods="filteredGoods" :cart="cartGoods" @add="addNewItem" v-else></goods-list>
 		</main>
-		<transition name="fade">
-			<div class="cart-list" v-if="isVisibleCart">
-				<button class="close_cart" @click.prevent="toggleCartVisibility">X</button>
-				<div class="cart-item" v-for="good in cartGoods">
-					<img :src="good.img" width="90" height="90">
-					<div class="cartColumn goodDescr">
-						<p><b>Наименование:</b></p>
-						<p><b>{{ good.title }}</b></p>
-					</div>
-					<div class="cartColumn goodPrice">					
-						<p><b>Цена:</b></p>
-						<p>{{ good.price }} $</p>
-					</div>
-					<div class="cartColumn goodQty">					
-						<p><b>Кол-во:</b></p>
-						<p>{{ good.qty }} шт.</p>
-						<button class="qtyBtn plusBtn" :data-id="good.id" @click.prevent="plusOne">+</button>					
-						<button class="qtyBtn minusBtn" :data-id="good.id" @click.prevent="minusOne">-</button>
-					</div>
-					<div class="cartColumn goodSum">					
-						<p><b>Сумма:</b></p>
-						<p><b>{{ good.sum = good.price * good.qty}} $</b></p>
-					</div>
-					<button class="item-button btn" :data-id="good.id" @click.prevent="removeItem">Удалить из корзины</button>
-				</div>
-				<div class="cartSum" v-if="isCartNotEmpty"><b>Итого: {{ cartSum }} $</b></div>
-				<div class="no-items cart-no-items" v-else>В корзине нет товаров</div>
-			</div>
-		</transition>
+		<cart :goods="filteredGoods" :visible="isVisibleCart" :cart_goods="cartGoods" @cart_send="cartUpd" @cart_close="toggleCartVisibility"></cart>
 	</div>
 </div>
 	<script type="text/javascript" src="script/vue.js"></script>

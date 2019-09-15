@@ -51,120 +51,86 @@ Vue.component('goods-list', {
 	`
 });
 
-const app = new Vue({
-	el: '#app',
-	data: {
-		goods: [],
-		searchLine: '',
-		cartGoods: [],
-		isVisibleCart: false,
-		cartCount: 0,
-		cartSum: 0
+Vue.component('search', {
+	data() {
+		return {
+			searchLine: '',
+		}
 	},
+	props: ['goods'],
 	computed: {
 		/**
-		 * Свойство фильтрует массив по значению строки поиска
+		 * Свойство фильтрует массив товаров по значению строки поиска
 		 * @return {arr}    массив с отфильтрованными объектами
 		 */
 		filteredGoods() {
 			const regexp = new RegExp(this.searchLine, 'i');
-			return this.goods.filter((good) => {
+			return this.goods.filter((good) => {	
 				return regexp.test(good.title);
 			});
 		},
-
-		/**
-		 * Свойство проверяет есть ли товар в общем списке товаров
-		 * @return {boolean}
-		 */
-		isGoodsNotEmpty() {
-			return this.filteredGoods.length > 0;
-		},
-
-		/**
-		 * Свойство проверяет есть ли товар в корзине
-		 * @return {boolean}
-		 */
-		isCartNotEmpty() {
-			return this.cartGoods.length > 0;
-		}
-	},
-	mounted() {
-		this.makeGETRequest(`${BASE_URL}/goods.json`).then((goods) => {
-			goods.forEach((i) => {
-				i.qty = 0;
-				i.sum = 0;
-			})
-			this.goods = goods;
-		}).catch(err => console.error(err));
 	},
 	methods: {
-		/**
-		 * Метод отправляет GET запрос на сервер
-		 * @param  {string} url ссылка на ресурс
-		 * @return {JSON}   файл json с данными
-		 */
-		makeGETRequest(url) {
-			return new Promise ((resolve, reject) => {
-				const xhr = window.XMLHttpRequest ? new window.XMLHttpRequest() : new window.ActiveXObject('Microsoft.XMLHTTP');
-
-				xhr.onreadystatechange = function () {
-					if (xhr.readyState === 4) {
-						const response = JSON.parse(xhr.responseText);
-						if (xhr.status !== 200) reject(response);
-						resolve(response);
-					}
-				};
-
-				xhr.onerror = (e) => reject(e);
-
-				xhr.open('GET', url);
-				xhr.send();
-			})
-		},
-
 		/**
 		 * Метод очищает строку поиска товара
 		 */
 		cleanSearch() {
 			this.searchLine = '';
 			this.$refs.searchInput.focus();
+			this.$emit('filter_send', this.filteredGoods);
 		},
 
 		/**
-		 * Метод добавляет выбранный товар в корзину, если его там не было
-		 * @param {obj} event кнопка добавления товара
+		 * Метод передаёт выше событие отфильтрованный массив товаров
+		 * @param {arr} filtered-goods событие клика
 		 */
-		async addNewItem(event) {
-			good = this.identifyItem(event);
-			try {
-				const { result } = await this.makeGETRequest(`${BASE_URL}/addToBasket.json`);
-				if(!result) {
-					throw new Error('Ошибка добавления');
-				}
-				if(!this.isAlreadyAdd(good)) {
-					good.qty = 1;
-					this.cartGoods.push(good);
-					this.cartCount = this.cartGoods.length;
-					this.totalPrice();
-				}
-			} catch(e) {
-				throw new Error(e);
-			}
+		filter_send() {
+			this.$emit('filter_send', this.filteredGoods);
+		}
+	},
+
+	template: `
+		<form class="goods-search-form" @submit.prevent>
+			<input type="text" class="goods-search" ref="searchInput" v-model.trim="searchLine" @keyup.prevent="filter_send()"></input>
+			<button class="clean-search" @click="cleanSearch">X</button>
+		</form>
+	`
+});
+
+Vue.component('cart', {
+	props: ['goods', 'visible', 'cart_goods'],
+	computed: {
+		/**
+		 * Свойство проверяет есть ли товар в корзине
+		 * @return {boolean}
+		 */
+		isCartNotEmpty() {
+			return this.cart_goods.length > 0;
 		},
 
+		/**
+		 * Свойство рассчитывает суммарную стоимость товаров в корзине
+		 * @param  [arr] list - массив с товарами
+		 * @return [number] - сумма всех товаров (по 1шт каждого)
+		 */
+		totalPrice() {
+			return this.cart_goods.reduce((total, good) => {
+				if(!good.price) return total;
+				return total += good.price * good.qty;
+			}, 0);
+		},
+	},
+	methods: {
 		/**
 		 * Метод удаляет выбранный товар из корзины
 		 * @param  {obj} event кнопка удаления товара
 		 */
 		removeItem(event) {	
 			good = this.identifyItem(event);
-			goodIndex = this.cartGoods.indexOf(good);
+			goodIndex = this.cart_goods.indexOf(good);
 			if (goodIndex > -1) {
-				this.cartGoods.splice(goodIndex, 1);
+				this.cart_goods.splice(goodIndex, 1);
 			}
-			this.cartCount = this.cartGoods.length;
-			this.totalPrice();
 		},
 
 		/**
@@ -178,6 +144,164 @@ const app = new Vue({
 				return currentGood.id === goodId;
 			});
 			return good;
+		},
+
+		/**
+		 * Метод увеличивает количество товара на 1
+		 * @param  {obj} good товар
+		 */
+		plusOne(event) {
+			good = this.identifyItem(event);
+			good.qty += 1;
+		},
+
+		/**
+		 * Метод уменьшает количество товара на 1
+		 * @param  {obj} good товар
+		 */
+		minusOne(event) {
+			good = this.identifyItem(event);
+			if (good.qty > 1) {
+				good.qty -= 1;
+			} else {
+				this.removeItem(event);
+			}
+		},
+
+		/**
+		 * Метод передаёт выше товары корзины
+		 * @param {arr} filtered-goods событие клика
+		 */
+		cart_send() {
+			this.$emit('cart_send', this.cartGoods);
+		},
+
+		/**
+		 * Метод передаёт выше необходимость закрытия корзины
+		 * @param {arr} filtered-goods событие клика
+		 */
+		cart_close() {
+			this.$emit('cart_close');
+		}
+	},
+	template: `
+		<transition name="fade">
+			<div class="cart-list" v-if="visible">
+				<button class="close_cart" @click.prevent="cart_close">X</button>
+				<div class="cart-item" v-for="good in cart_goods">
+					<img :src="good.img" width="90" height="90">
+					<div class="cartColumn goodDescr">
+						<p><b>Наименование:</b></p>
+						<p><b>{{ good.title }}</b></p>
+					</div>
+					<div class="cartColumn goodPrice">					
+						<p><b>Цена:</b></p>
+						<p>{{ good.price }} $</p>
+					</div>
+					<div class="cartColumn goodQty">					
+						<p><b>Кол-во:</b></p>
+						<p>{{ good.qty }} шт.</p>
+						<button class="qtyBtn plusBtn" :data-id="good.id" @click.prevent="plusOne">+</button>					
+						<button class="qtyBtn minusBtn" :data-id="good.id" @click.prevent="minusOne">-</button>
+					</div>
+					<div class="cartColumn goodSum">					
+						<p><b>Сумма:</b></p>
+						<p><b>{{ good.sum = good.price * good.qty}} $</b></p>
+					</div>
+					<button class="item-button btn" :data-id="good.id" @click.prevent="removeItem">Удалить из корзины</button>
+				</div>
+				<div class="cartSum" v-if="isCartNotEmpty"><b>Итого: {{ totalPrice }} $</b></div>
+				<div class="no-items cart-no-items" v-else>В корзине нет товаров</div>
+			</div>
+		</transition>
+	`
+});
+
+Vue.component('error', {
+	template: `
+			<div class="error">			
+				Нет связи с сервером товаров
+			</div>
+	`
+});
+
+const app = new Vue({
+	el: '#app',
+	data: {
+		goods: [],
+		filteredGoods: [],
+		cartGoods: [],
+		isVisibleCart: false,
+		isError: false
+	},
+	computed: {
+		cartCount() {
+			return this.cartGoods.length;
+		}
+	},
+	mounted() {
+		this.makeGETRequest(`${BASE_URL}/goods.json`).then((goods) => {
+			goods.forEach((i) => {
+				i.qty = 0;
+				i.sum = 0;
+			})
+			this.goods = goods;
+			this.filteredGoods = goods;
+		}).catch((err) => {
+			this.isError = !this.isError;
+			console.error(err);
+		});
+	},
+	methods: {
+		/**
+		 * Метод отправляет GET запрос на сервер
+		 * @param  {string} url ссылка на ресурс
+		 * @return {JSON}   файл json с данными
+		 */
+		makeGETRequest(url) {
+			return new Promise ((resolve, reject) => {
+				const xhr = window.XMLHttpRequest ? new window.XMLHttpRequest() : new window.ActiveXObject('Microsoft.XMLHTTP');
+
+				xhr.onreadystatechange = function () {
+					if (xhr.readyState === 4) {
+						if (xhr.status !== 200) {
+							reject(xhr.status);
+						}
+						else {
+							const response = JSON.parse(xhr.responseText);
+							resolve(response);
+						}
+					}
+				};
+
+				xhr.onerror = (e) => reject(e);
+
+				xhr.open('GET', url);
+				xhr.send();
+			})
+		},
+
+		/**
+		 * Метод добавляет выбранный товар в корзину, если его там не было
+		 * @param {obj} event кнопка добавления товара
+		 */
+		async addNewItem(event) {
+			goodId = event.target.getAttribute('data-id');
+			good = this.goods.find((currentGood) => {
+				return currentGood.id === goodId;
+			});
+			try {
+				const { result } = await this.makeGETRequest(`${BASE_URL}/addToBasket.json`);
+				if(!result) {
+					throw new Error('Ошибка добавления');
+				}
+				if(!this.isAlreadyAdd(good)) {
+					good.qty = 1;
+					this.cartGoods.push(good);
+				}
+			} catch(e) {
+				throw new Error(e);
+			}
 		},
 
 		/**
@@ -199,39 +323,19 @@ const app = new Vue({
 		},
 
 		/**
-		 * Метод увеличивает количество товара на 1
-		 * @param  {obj} good товар
+		 * Метод обновляет список товаров в соответствии с пришедшим массивом
+		 * @param  {arr} fgoods отфильтрованный массив товаров
 		 */
-		plusOne(event) {
-			good = this.identifyItem(event);
-			good.qty += 1;
-			this.totalPrice();
+		updateGoods(fgoods) {
+			this.filteredGoods = fgoods;
 		},
 
 		/**
-		 * Метод уменьшает количество товара на 1
-		 * @param  {obj} good товар
+		 * Метод обновляет список корзины
+		 * @param  {arr} cgoods массив товаров корзины
 		 */
-		minusOne(event) {
-			good = this.identifyItem(event);
-			if (good.qty > 1) {
-				good.qty -= 1;
-			} else {
-				this.removeItem(event);
-			}
-			this.totalPrice();
-		},
-
-		/**
-		 * Метод рассчитывает суммарную стоимость товаров в корзине
-		 * @param  [arr] list - массив с товарами
-		 * @return [number] - сумма всех товаров (по 1шт каждого)
-		 */
-		totalPrice() {
-			this.cartSum = this.cartGoods.reduce((total, good) => {
-				if(!good.price) return total;
-				return total += good.price * good.qty;
-			}, 0);
+		cartUpd(cgoods) {
+			this.cartGoods = cgoods;
 		}
 	}
 })
