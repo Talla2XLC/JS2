@@ -1,4 +1,4 @@
-const BASE_URL = 'https://raw.githubusercontent.com/Talla2XLC/JS_level2/task5'
+const BASE_URL = 'https://raw.githubusercontent.com/Talla2XLC/JS2/master'
 
 Vue.component('goods-item', {
 	props: ['good', 'cart'],
