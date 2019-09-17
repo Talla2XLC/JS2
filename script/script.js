@@ -76,7 +76,7 @@ Vue.component('search', {
 		 */
 		cleanSearch() {
 			this.searchLine = '';
-			this.$refs.searchInput.focus();
+			this.$refs.searchInput.active();
 			this.$emit('filter_send', this.filteredGoods);
 		},
 
