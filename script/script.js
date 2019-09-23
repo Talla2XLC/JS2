@@ -21,7 +21,9 @@ Vue.component('goods-item', {
 		 * @param {obj} event событие клика
 		 */
 		add(event) {
-			this.$emit('add', event);
+			if (!this.goodsIdInCart.includes(this.good.id)) {
+				this.$emit('add', event);				
+			}
 		}
 	},
 	template: `
@@ -151,8 +153,7 @@ Vue.component('cart', {
 		 * @param  {obj} good товар
 		 */
 		plusOne(event) {
-			good = this.identifyItem(event);
-			good.qty += 1;
+			this.$emit('plus_one_item', event);
 		},
 
 		/**
@@ -160,9 +161,12 @@ Vue.component('cart', {
 		 * @param  {obj} good товар
 		 */
 		minusOne(event) {
-			good = this.identifyItem(event);
+			goodId = event.target.getAttribute('data-id');
+			good = this.cart_goods.find((currentGood) => {
+				return currentGood.id === goodId;
+			});
 			if (good.qty > 1) {
-				good.qty -= 1;
+				this.$emit('minus_one_item', event);
 			} else {
 				this.cart_remove_good(event);
 			}
@@ -344,7 +348,8 @@ const app = new Vue({
 				if(!this.isAlreadyAdd(good)) {
 					good.qty = 1;
 					this.makePOSTRequest('/addToCart', good);
-					this.getCart();
+					setTimeout(this.getCart(), 2000);
+					this.addStat("Добавлен товар", good.title);
 				}
 			} catch(e) {
 				throw new Error(e);
@@ -358,7 +363,39 @@ const app = new Vue({
 		removeItem(event) {	
 			good = this.identifyItem(event);
 			this.makePOSTRequest('/removeFromCart', good);
-			this.getCart();
+			setTimeout(this.getCart(), 2000);
+			this.addStat("Удалён товар", good.title);
+		},
+
+		/**
+		 * Метод удаляет 1шт выбранного товара
+		 * @param  {obj} event кнопка удаления товара
+		 */
+		minusOneItem(event) {
+			good = this.identifyItem(event);
+			this.makePOSTRequest('/minusOneItem', good);
+			setTimeout(this.getCart(), 2000);
+			this.addStat("Удалена 1шт", good.title);
+		},
+
+		/**
+		 * Метод прибавляет 1шт выбранного товара
+		 * @param  {obj} event кнопка удаления товара
+		 */
+		plusOneItem(event) {
+			good = this.identifyItem(event);
+			this.makePOSTRequest('/plusOneItem', good);
+			setTimeout(this.getCart(), 2000);
+			this.addStat("Добавлена 1шт", good.title);
+		},
+
+		addStat(act, good) {
+			let stat = {
+				"действие": act,
+				"описание": good,
+				"время": Date()
+			};
+			this.makePOSTRequest('/addStat', stat);
 		},
 
 		/**
