@@ -1,0 +1,44 @@
+[
+	{
+		"id": "1",
+		"title": "Shirt",
+		"price": 150,
+		"img": "img/img_unavailable.jpg"
+	},
+	{
+		"id": "2",
+		"title": "Socks",
+		"price": 50,
+		"img": "img/img_unavailable.jpg"
+	},
+	{
+		"id": "3",
+		"title": "Jacket",
+		"price": 350,
+		"img": "img/img_unavailable.jpg"
+	},
+	{
+		"id": "4",
+		"title": "Shoes",
+		"price": 250,
+		"img": "img/img_unavailable.jpg"
+	},
+	{
+		"id": "5",
+		"title": "Pants",
+		"price": 450,
+		"img": "img/img_unavailable.jpg"
+	},
+	{
+		"id": "6",
+		"title": "T-shirt",
+		"price": 100,
+		"img": "img/img_unavailable.jpg"
+	},
+	{
+		"id": "7",
+		"title": "Underwear",
+		"price": 160,
+		"img": "img/img_unavailable.jpg"
+	}
+]

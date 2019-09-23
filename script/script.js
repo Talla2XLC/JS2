@@ -1,4 +1,4 @@
-const BASE_URL = 'https://raw.githubusercontent.com/Talla2XLC/JS2/master'
+const BASE_URL = ''
 
 Vue.component('goods-item', {
 	props: ['good', 'cart'],
@@ -239,13 +239,20 @@ const app = new Vue({
 		}
 	},
 	mounted() {
-		this.makeGETRequest(`${BASE_URL}/goods.json`).then((goods) => {
+		this.makeGETRequest(`${BASE_URL}/catalogData`).then((goods) => {
 			goods.forEach((i) => {
 				i.qty = 0;
 				i.sum = 0;
 			})
 			this.goods = goods;
 			this.filteredGoods = goods;
+		}).catch((err) => {
+			this.isError = !this.isError;
+			console.error(err);
+		});
+
+		this.makeGETRequest(`${BASE_URL}/cartData`).then((goods) => {
+			this.cartGoods = goods;
 		}).catch((err) => {
 			this.isError = !this.isError;
 			console.error(err);
@@ -281,6 +288,37 @@ const app = new Vue({
 		},
 
 		/**
+		 * Метод отправляет POST запрос на сервер
+		 * @param  {string} url ссылка на ресурс
+		 * @param  {data} data передаваемые данные
+		 * @return {JSON}   файл json с данными
+		 */
+		makePOSTRequest(url, data) {
+			return new Promise ((resolve, reject) => {
+				const xhr = window.XMLHttpRequest ? new window.XMLHttpRequest() : new window.ActiveXObject('Microsoft.XMLHTTP');
+
+				xhr.onreadystatechange = function () {
+					if (xhr.readyState === 4) {
+						if (xhr.status !== 200) {
+							reject(xhr.status);
+						}
+						else {
+							const response = JSON.parse(xhr.responseText);
+							resolve(response);
+						}
+					}
+				};
+
+				xhr.onerror = (e) => reject(e);
+
+				xhr.open('POST', url);
+				xhr.setRequestHeader('Content-type', 'application/json; charset=UTF-8');
+
+				xhr.send(JSON.stringify(data));
+			})
+		},
+
+		/**
 		 * Метод добавляет выбранный товар в корзину, если его там не было
 		 * @param {obj} event кнопка добавления товара
 		 */
@@ -296,7 +334,8 @@ const app = new Vue({
 				}
 				if(!this.isAlreadyAdd(good)) {
 					good.qty = 1;
-					this.cartGoods.push(good);
+					this.makePOSTRequest('/addToCart', good)
+					// this.cartGoods.push(good);
 				}
 			} catch(e) {
 				throw new Error(e);
