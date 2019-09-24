@@ -21,7 +21,7 @@
 			<error v-if="isError"></error>
 			<goods-list :goods="filteredGoods" :cart="cartGoods" @add="addNewItem" v-else></goods-list>
 		</main>
-		<cart :goods="filteredGoods" :visible="isVisibleCart" :cart_goods="cartGoods" @cart_send="cartUpd" @cart_close="toggleCartVisibility"></cart>
+		<cart :goods="filteredGoods" :visible="isVisibleCart" :cart_goods="cartGoods" @cart_close="toggleCartVisibility" @cart_remove_good="removeItem" @minus_one_item="minusOneItem" @plus_one_item="plusOneItem"></cart>
 	</div>
 </div>
 	<script type="text/javascript" src="script/vue.js"></script>
