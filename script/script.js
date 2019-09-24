@@ -244,6 +244,17 @@ const app = new Vue({
 			return this.cartGoods.length;
 		}
 	},
+	created() {
+		/**
+		 * Метод обновляет товары в корзине
+		 */
+		this.makeGETRequest(`${BASE_URL}/cartData`).then((goods) => {
+			this.cartGoods = goods;
+		}).catch((err) => {
+			this.isError = !this.isError;
+			console.error(err);
+		});
+	},
 	mounted() {
 		this.makeGETRequest(`${BASE_URL}/catalogData`).then((goods) => {
 			goods.forEach((i) => {
@@ -256,8 +267,6 @@ const app = new Vue({
 			this.isError = !this.isError;
 			console.error(err);
 		});
-
-		this.getCart();
 	},
 	methods: {
 		/**
@@ -286,18 +295,6 @@ const app = new Vue({
 				xhr.open('GET', url);
 				xhr.send();
 			})
-		},
-
-		/**
-		 * Метод обновляет товары в корзине
-		 */
-		getCart() {
-			this.makeGETRequest(`${BASE_URL}/cartData`).then((goods) => {
-				this.cartGoods = goods;
-			}).catch((err) => {
-				this.isError = !this.isError;
-				console.error(err);
-			});
 		},
 
 		/**
@@ -332,6 +329,37 @@ const app = new Vue({
 		},
 
 		/**
+		 * Метод отправляет DELETE запрос на сервер
+		 * @param  {string} url ссылка на ресурс
+		 * @param  {data} data передаваемые данные
+		 * @return {JSON}   файл json с данными
+		 */
+		makeDELETERequest(url, data) {
+			return new Promise ((resolve, reject) => {
+				const xhr = window.XMLHttpRequest ? new window.XMLHttpRequest() : new window.ActiveXObject('Microsoft.XMLHTTP');
+
+				xhr.onreadystatechange = function () {
+					if (xhr.readyState === 4) {
+						if (xhr.status !== 200) {
+							reject(xhr.status);
+						}
+						else {
+							const response = JSON.parse(xhr.responseText);
+							resolve(response);
+						}
+					}
+				};
+
+				xhr.onerror = (e) => reject(e);
+
+				xhr.open('DELETE', url);
+				xhr.setRequestHeader('Content-type', 'application/json; charset=UTF-8');
+
+				xhr.send(JSON.stringify(data));
+			})
+		},
+
+		/**
 		 * Метод добавляет выбранный товар в корзину, если его там не было
 		 * @param {obj} event кнопка добавления товара
 		 */
@@ -341,14 +369,9 @@ const app = new Vue({
 				return currentGood.id === goodId;
 			});
 			try {
-				const { result } = await this.makeGETRequest(`${BASE_URL}/addToBasket.json`);
-				if(!result) {
-					throw new Error('Ошибка добавления');
-				}
 				if(!this.isAlreadyAdd(good)) {
 					good.qty = 1;
-					this.makePOSTRequest('/addToCart', good);
-					setTimeout(this.getCart(), 2000);
+					this.cartGoods = await this.makePOSTRequest('/addToCart', good);
 					this.addStat("Добавлен товар", good.title);
 				}
 			} catch(e) {
@@ -360,33 +383,42 @@ const app = new Vue({
 		 * Метод удаляет выбранный товар из корзины
 		 * @param  {obj} event кнопка удаления товара
 		 */
-		removeItem(event) {	
+		async removeItem(event) {	
 			good = this.identifyItem(event);
-			this.makePOSTRequest('/removeFromCart', good);
-			setTimeout(this.getCart(), 2000);
-			this.addStat("Удалён товар", good.title);
+			try {
+				this.cartGoods = await this.makeDELETERequest('/removeFromCart', good);
+				this.addStat("Удалён товар", good.title);
+			} catch(e) {
+				throw new Error(e);
+			}						
 		},
 
 		/**
 		 * Метод удаляет 1шт выбранного товара
 		 * @param  {obj} event кнопка удаления товара
 		 */
-		minusOneItem(event) {
+		async minusOneItem(event) {
 			good = this.identifyItem(event);
-			this.makePOSTRequest('/minusOneItem', good);
-			setTimeout(this.getCart(), 2000);
-			this.addStat("Удалена 1шт", good.title);
+			try {
+				this.cartGoods = await this.makePOSTRequest('/minusOneItem', good);
+				this.addStat("Удалена 1шт", good.title);
+			} catch(e) {
+				throw new Error(e);
+			}			
 		},
 
 		/**
 		 * Метод прибавляет 1шт выбранного товара
 		 * @param  {obj} event кнопка удаления товара
 		 */
-		plusOneItem(event) {
+		async plusOneItem(event) {
 			good = this.identifyItem(event);
-			this.makePOSTRequest('/plusOneItem', good);
-			setTimeout(this.getCart(), 2000);
-			this.addStat("Добавлена 1шт", good.title);
+			try {
+				this.cartGoods = await this.makePOSTRequest('/plusOneItem', good);
+				this.addStat("Добавлена 1шт", good.title);
+			} catch(e) {
+				throw new Error(e);
+			}			
 		},
 
 		addStat(act, good) {

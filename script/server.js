@@ -35,15 +35,13 @@ app.post('/addToCart', (req, res) => {
 					result: 0
 				}))
 			} else {
-				res.send(JSON.stringify({
-					result: 1
-				}))
+				res.send(JSON.stringify(cart))
 			}
 		})
 	})
 });
 
-app.post('/removeFromCart', (req, res) => {
+app.delete('/removeFromCart', (req, res) => {
 	fs.readFile('cart.json', 'utf-8', (err, data) => {
 		const cart = JSON.parse(data);
 		const good = cart.find((currentGood) => {
@@ -58,9 +56,7 @@ app.post('/removeFromCart', (req, res) => {
 					result: 0
 				}))
 			} else {
-				res.send(JSON.stringify({
-					result: 1
-				}))
+				res.send(JSON.stringify(cart))
 			}
 		})
 	})
@@ -80,9 +76,7 @@ app.post('/minusOneItem', (req, res) => {
 					result: 0
 				}))
 			} else {
-				res.send(JSON.stringify({
-					result: 1
-				}))
+				res.send(JSON.stringify(cart))
 			}
 		})
 	})
@@ -102,9 +96,7 @@ app.post('/plusOneItem', (req, res) => {
 					result: 0
 				}))
 			} else {
-				res.send(JSON.stringify({
-					result: 1
-				}))
+				res.send(JSON.stringify(cart))
 			}
 		})
 	})
