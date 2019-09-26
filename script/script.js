@@ -1,200 +1,10 @@
 const BASE_URL = '';
 
 import goods_item from './goods-item.js';
-
-Vue.component('goods-list', {
-	props: ['goods', 'cart'],
-	computed: {
-		/**
-		 * Свойство проверяет есть ли товар в общем списке товаров
-		 * @return {boolean}
-		 */
-		isGoodsNotEmpty() {
-			return this.goods.length > 0;
-		},
-	},
-	methods: {
-		/**
-		 * Метод передаёт выше событие клика кнопки добавления товара
-		 * @param {obj} event событие клика
-		 */
-		add(event) {
-			this.$emit('add', event);
-		}
-	},
-	template: `
-		<div class="goods-list" v-if="isGoodsNotEmpty">
-			<goods-item v-for="good in goods" :good="good" :cart="cart" :key="good.id" @add="add"></goods-item>
-		</div>		
-		<div class="no-items" v-else>
-			Нет подходящих товаров
-		</div>
-	`
-});
-
-Vue.component('search', {
-	data() {
-		return {
-			searchLine: '',
-		}
-	},
-	props: ['goods'],
-	computed: {
-		/**
-		 * Свойство фильтрует массив товаров по значению строки поиска
-		 * @return {arr}    массив с отфильтрованными объектами
-		 */
-		filteredGoods() {
-			const regexp = new RegExp(this.searchLine, 'i');
-			return this.goods.filter((good) => {	
-				return regexp.test(good.title);
-			});
-		},
-	},
-	methods: {
-		/**
-		 * Метод очищает строку поиска товара
-		 */
-		cleanSearch() {
-			this.searchLine = '';
-			this.$emit('filter_send', this.filteredGoods);
-		},
-
-		/**
-		 * Метод передаёт выше событие отфильтрованный массив товаров
-		 * @param {arr} filtered-goods событие клика
-		 */
-		filter_send() {
-			this.$emit('filter_send', this.filteredGoods);
-		}
-	},
-
-	template: `
-		<form class="goods-search-form" @submit.prevent>
-			<input type="text" class="goods-search" ref="searchInput" v-model.trim="searchLine" @keyup.prevent="filter_send()"></input>
-			<button class="clean-search" @click="cleanSearch">X</button>
-		</form>
-	`
-});
-
-Vue.component('cart', {
-	props: ['goods', 'visible', 'cart_goods'],
-	computed: {
-		/**
-		 * Свойство проверяет есть ли товар в корзине
-		 * @return {boolean}
-		 */
-		isCartNotEmpty() {
-			return this.cart_goods.length > 0;
-		},
-
-		/**
-		 * Свойство рассчитывает суммарную стоимость товаров в корзине
-		 * @param  [arr] list - массив с товарами
-		 * @return [number] - сумма всех товаров (по 1шт каждого)
-		 */
-		totalPrice() {
-			return this.cart_goods.reduce((total, good) => {
-				if(!good.price) return total;
-				return total += good.price * good.qty;
-			}, 0);
-		},
-	},
-	methods: {
-		/**
-		 * Метод определяет товар по нажатой кнопке товара
-		 * @param  {obj} event нажатая кнопка товара
-		 * @return {obj}       выбранный товар
-		 */
-		identifyItem(event) {
-			goodId = event.target.getAttribute('data-id');
-			good = this.goods.find((currentGood) => {
-				return currentGood.id === goodId;
-			});
-			return good;
-		},
-
-		/**
-		 * Метод увеличивает количество товара на 1
-		 * @param  {obj} good товар
-		 */
-		plusOne(event) {
-			this.$emit('plus_one_item', event);
-		},
-
-		/**
-		 * Метод уменьшает количество товара на 1
-		 * @param  {obj} good товар
-		 */
-		minusOne(event) {
-			goodId = event.target.getAttribute('data-id');
-			good = this.cart_goods.find((currentGood) => {
-				return currentGood.id === goodId;
-			});
-			if (good.qty > 1) {
-				this.$emit('minus_one_item', event);
-			} else {
-				this.cart_remove_good(event);
-			}
-		},
-
-		/**
-		 * Метод оповещает о необходимости удалить товар из корзины
-		 * @param {obj} event кнопка удаления товара
-		 * @param {arr} filtered-goods событие клика
-		 */
-		cart_remove_good(event) {
-			this.$emit('cart_remove_good', event);
-		},
-
-		/**
-		 * Метод передаёт выше необходимость закрытия корзины
-		 * @param {arr} filtered-goods событие клика
-		 */
-		cart_close() {
-			this.$emit('cart_close');
-		}
-	},
-	template: `
-		<transition name="fade">
-			<div class="cart-list" v-if="visible">
-				<button class="close_cart" @click.prevent="cart_close">X</button>
-				<div class="cart-item" v-for="good in cart_goods">
-					<img :src="good.img" width="90" height="90">
-					<div class="cartColumn goodDescr">
-						<p><b>Наименование:</b></p>
-						<p><b>{{ good.title }}</b></p>
-					</div>
-					<div class="cartColumn goodPrice">					
-						<p><b>Цена:</b></p>
-						<p>{{ good.price }} $</p>
-					</div>
-					<div class="cartColumn goodQty">					
-						<p><b>Кол-во:</b></p>
-						<p>{{ good.qty }} шт.</p>
-						<button class="qtyBtn plusBtn" :data-id="good.id" @click.prevent="plusOne">+</button>					
-						<button class="qtyBtn minusBtn" :data-id="good.id" @click.prevent="minusOne">-</button>
-					</div>
-					<div class="cartColumn goodSum">					
-						<p><b>Сумма:</b></p>
-						<p><b>{{ good.sum = good.price * good.qty}} $</b></p>
-					</div>
-					<button class="item-button btn" :data-id="good.id" @click.prevent="cart_remove_good">Удалить из корзины</button>
-				</div>
-				<div class="cartSum" v-if="isCartNotEmpty"><b>Итого: {{ totalPrice }} $</b></div>
-				<div class="no-items cart-no-items" v-else>В корзине нет товаров</div>
-			</div>
-		</transition>
-	`
-});
-
-Vue.component('error', {
-	template: `
-			<div class="error">			
-				Нет связи с сервером товаров
-			</div>
-	`
-});
+import goods_list from './goods-list.js';
+import search from './search.js';
+import cart from './cart.js';
+import error from './error.js';
 
 const app = new Vue({
 	el: '#app',
@@ -330,8 +140,8 @@ const app = new Vue({
 		 * @param {obj} event кнопка добавления товара
 		 */
 		async addNewItem(event) {
-			goodId = event.target.getAttribute('data-id');
-			good = this.goods.find((currentGood) => {
+			let goodId = event.target.getAttribute('data-id');
+			let good = this.goods.find((currentGood) => {
 				return currentGood.id === goodId;
 			});
 			try {
@@ -350,7 +160,7 @@ const app = new Vue({
 		 * @param  {obj} event кнопка удаления товара
 		 */
 		async removeItem(event) {	
-			good = this.identifyItem(event);
+			let good = this.identifyItem(event);
 			try {
 				this.cartGoods = await this.makeDELETERequest('/removeFromCart', good);
 				this.addStat("Удалён товар", good.title);
@@ -364,7 +174,7 @@ const app = new Vue({
 		 * @param  {obj} event кнопка удаления товара
 		 */
 		async minusOneItem(event) {
-			good = this.identifyItem(event);
+			let good = this.identifyItem(event);
 			try {
 				this.cartGoods = await this.makePOSTRequest('/minusOneItem', good);
 				this.addStat("Удалена 1шт", good.title);
@@ -378,7 +188,7 @@ const app = new Vue({
 		 * @param  {obj} event кнопка удаления товара
 		 */
 		async plusOneItem(event) {
-			good = this.identifyItem(event);
+			let good = this.identifyItem(event);
 			try {
 				this.cartGoods = await this.makePOSTRequest('/plusOneItem', good);
 				this.addStat("Добавлена 1шт", good.title);
@@ -402,8 +212,8 @@ const app = new Vue({
 		 * @return {obj}       выбранный товар
 		 */
 		identifyItem(event) {
-			goodId = event.target.getAttribute('data-id');
-			good = this.goods.find((currentGood) => {
+			let goodId = event.target.getAttribute('data-id');
+			let good = this.goods.find((currentGood) => {
 				return currentGood.id === goodId;
 			});
 			return good;
