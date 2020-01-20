@@ -24,7 +24,7 @@
 		<cart :goods="filteredGoods" :visible="isVisibleCart" :cart_goods="cartGoods" @cart_close="toggleCartVisibility" @cart_remove_good="removeItem" @minus_one_item="minusOneItem" @plus_one_item="plusOneItem"></cart>
 	</div>
 </div>
-	<script type="text/javascript" src="script/vue.js"></script>
-	<script type="text/javascript" src="script/script.js"></script>
+	<script type="module" src="script/vue.js"></script>
+	<script type="module" src="dist/build.js"></script>
 </body>
 </html>
